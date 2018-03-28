@@ -1,67 +1,43 @@
-const { GraphQLServer } = require("graphql-yoga");
+const { GraphQLServer, PubSub } = require("graphql-yoga");
 const fetch = require("node-fetch");
 
 const typeDefs = `
   type Query {
-    hello(name: String): String!
-    getPerson(id: Int!): Person
+    getNums: [Int!]!
   }
 
-  type Planet {
-    name: String
-    rotation_period: String
-    orbital_period: String
-    films: [Film]
+  type Mutation {
+    addNum: Boolean
   }
 
-  type Film {
-    title: String
-    episode_id: Int
-    opening_crawl: String
-    director: String
-    producer: String
-    release_date: String
-  }
-
-  type Person {
-    name: String
-    height: String
-    mass: String
-    hair_color: String
-    skin_color: String
-    eye_color: String
-    birth_year: String
-    gender: String
-    films: [Film]
-    homeworld: Planet
+  type Subscription {
+    newNum: Int!
   }
 `;
 
-const resolveFilms = parent => {
-  const promises = parent.films.map(async url => {
-    const response = await fetch(url);
-    return response.json();
-  });
+let score = 4;
+const nums = [0, 1, 2, 3];
+const pubsub = new PubSub();
 
-  return Promise.all(promises);
-};
+const NEW_NUM = "NEW_NUM";
 
 const resolvers = {
-  Planet: {
-    films: resolveFilms
-  },
-  Person: {
-    homeworld: async parent => {
-      const response = await fetch(parent.homeworld);
-      return response.json();
-    },
-    films: resolveFilms
-  },
   Query: {
-    hello: (_, { name }) => `Hello ${name || "World"}`,
-    getPerson: async (_, { id }) => {
-      const response = await fetch(`https://swapi.co/api/people/${id}/`);
-      return response.json();
+    getNums: () => nums
+  },
+  Mutation: {
+    addNum: () => {
+      nums.push(score);
+      pubsub.publish(NEW_NUM, { newNum: score });
+      score += 1;
+      return nums;
+    }
+  },
+  Subscription: {
+    newNum: {
+      subscribe: () => {
+        return pubsub.asyncIterator(NEW_NUM);
+      }
     }
   }
 };
