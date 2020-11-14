@@ -60,7 +60,7 @@ const resolvers = {
   Query: {
     hello: (_, { name }) => `Hello ${name || "World"}`,
     getPerson: async (_, { id }) => {
-      const response = await fetch(`https://swapi.co/api/people/${id}/`);
+      const response = await fetch(`https://swapi.dev/api/people/${id}/`);
       return response.json();
     }
   }
